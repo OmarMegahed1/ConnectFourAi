@@ -5,6 +5,7 @@ import os
 import sys
 import math
 import random
+
 # intialize the pygame 
 pygame.init()
 #play music
@@ -173,51 +174,57 @@ def PickBestMove(Board,piece):
 def IsTerminalNode(board):
 	return CheckWinner(board, PLAYER_PIECE) or CheckWinner(board, AI_PIECE) or len(GetValidLocations(board)) == 0
 
-#MiniMax+Alpha+Beta+Pruning 😘
+# MiniMax+Alpha+Beta+Pruning 😘
 def MiniMax(board, depth, alpha, beta, maximizingPlayer):
-	valid_locations = GetValidLocations(board)
-	is_terminal = IsTerminalNode(board)
-	if depth == 0 or is_terminal:
-		if is_terminal:
-			if CheckWinner(board, AI_PIECE):
-				return (None, 100000000000000)
-			elif CheckWinner(board, PLAYER_PIECE):
-				return (None, -10000000000000)
-			else: # Game is over, no more valid moves
-				return (None, 0)
-		else: # Depth is zero
-			return (None, score_position(board, AI_PIECE))
-	if maximizingPlayer:
-		value = -math.inf
-		column = random.choice(valid_locations)
-		for col in valid_locations:
-			row = GetNextOpenRow(board, col)
-			b_copy = board.copy()
-			DropPiece(b_copy, row, col, AI_PIECE)
-			new_score = MiniMax(b_copy, depth-1, alpha, beta, False)[1]
-			if new_score > value:
-				value = new_score
-				column = col
-			alpha = max(alpha, value)
-			if alpha >= beta:
-				break
-		return column, value
+    global nodes_expanded_before_pruning, nodes_expanded_after_pruning
+    valid_locations = GetValidLocations(board)
+    is_terminal = IsTerminalNode(board)
+    if depth == 0 or is_terminal:
+        if is_terminal:
+            if CheckWinner(board, AI_PIECE):
+                return (None, 100000000000000)
+            elif CheckWinner(board, PLAYER_PIECE):
+                return (None, -10000000000000)
+            else: # Game is over, no more valid moves
+                return (None, 0)
+        else: # Depth is zero
+            return (None, score_position(board, AI_PIECE))
+    if maximizingPlayer:
+        value = -math.inf
+        column = random.choice(valid_locations)
+        for col in valid_locations:
+            row = GetNextOpenRow(board, col)
+            b_copy = board.copy()
+            DropPiece(b_copy, row, col, AI_PIECE)
+            nodes_expanded_before_pruning += 1  # Increment before expanding
+            new_score = MiniMax(b_copy, depth-1, alpha, beta, False)[1]
+            if new_score > value:
+                value = new_score
+                column = col
+            alpha = max(alpha, value)
+            if alpha >= beta:
+                break
+        nodes_expanded_after_pruning += len(valid_locations)  # Increment after expanding
+        return column, value
 
-	else: # Minimizing player
-		value = math.inf
-		column = random.choice(valid_locations)
-		for col in valid_locations:
-			row = GetNextOpenRow(board, col)
-			b_copy = board.copy()
-			DropPiece(b_copy, row, col, PLAYER_PIECE)
-			new_score = MiniMax(b_copy, depth-1, alpha, beta, True)[1]
-			if new_score < value:
-				value = new_score
-				column = col
-			beta = min(beta, value)
-			if alpha >= beta:
-				break
-		return column, value
+    else: # Minimizing player
+        value = math.inf
+        column = random.choice(valid_locations)
+        for col in valid_locations:
+            row = GetNextOpenRow(board, col)
+            b_copy = board.copy()
+            DropPiece(b_copy, row, col, PLAYER_PIECE)
+            nodes_expanded_before_pruning += 1  # Increment before expanding
+            new_score = MiniMax(b_copy, depth-1, alpha, beta, True)[1]
+            if new_score < value:
+                value = new_score
+                column = col
+            beta = min(beta, value)
+            if alpha >= beta:
+                break
+        nodes_expanded_after_pruning += len(valid_locations)  # Increment after expanding
+        return column, value
+    
 # Make Screen
 screen=pygame.display.set_mode(SIZE)
 # Set caption for screen
@@ -226,6 +233,12 @@ pygame.display.set_caption("Connect4")
 DrawBoard(board)
 pygame.display.update()
 myfont = pygame.font.SysFont("monospace", 75)
+
+
+# Depth of MiniMax search
+search_depth = 5  # Adjust this based on your game's scenario
+
+# Game Loop
 while not GAME_OVER:
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
@@ -263,7 +276,7 @@ while not GAME_OVER:
         # Ask for AI Input
         if TURN == AI and not GAME_OVER:
             pygame.time.wait(500)
-            col, minimax_score = MiniMax(board, 5, -math.inf, math.inf, True)
+            col, minimax_score = MiniMax(board, search_depth, -math.inf, math.inf, True)
 
             if IsValidLocation(board, col):
                 row = GetNextOpenRow(board, col)
@@ -283,3 +296,16 @@ while not GAME_OVER:
 
                 if GAME_OVER:
                     pygame.time.wait(3000)
+		    
+average_branching_factor_before_pruning = nodes_expanded_before_pruning / search_depth # Assuming depth is 5
+average_branching_factor_after_pruning = nodes_expanded_after_pruning / search_depth # Assuming depth is 5
+
+# Calculate reduction in average branching factor
+if average_branching_factor_before_pruning > 0:
+    reduction_in_branching_factor = ((average_branching_factor_before_pruning - average_branching_factor_after_pruning) / average_branching_factor_before_pruning) * 100
+else:
+    reduction_in_branching_factor = 0  # Avoid division by zero if no nodes were expanded
+
+reduction_in_branching_factor = (average_branching_factor_before_pruning - average_branching_factor_after_pruning) / average_branching_factor_before_pruning * 100
+
+print("Reduction in Average Branching Factor:", reduction_in_branching_factor, "%")

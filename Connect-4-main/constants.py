@@ -18,6 +18,10 @@ WINDOW_LENGTH=4
 PLAYER_PIECE=1
 AI_PIECE=2
 EMPTY=0
+# Initialize variables to count the number of nodes expanded before and after pruning
+nodes_expanded_before_pruning = 0
+nodes_expanded_after_pruning = 0
+
 # import pygame
 # import sys
 
