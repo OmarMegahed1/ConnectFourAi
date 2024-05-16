@@ -22,6 +22,7 @@ Connect Four is a classic two-player game where the objective is to be the first
 
 - Interactive graphical user interface using Pygame.
 - AI opponent with Minimax algorithm and alpha-beta pruning for efficient move selection.
+- Calculating Reduction in Average Branching Factor.
 - Sound effects and background music during gameplay.
 - Player vs. AI mode.
 
